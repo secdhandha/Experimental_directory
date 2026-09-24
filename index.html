@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Senior ID Directory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 p-6">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center text-blue-900">🎓 Senior Student Directory</h1>
+        
+        <div class="flex flex-col md:flex-row gap-4 mb-8">
+            <input type="text" id="search" placeholder="🔍 Search by Name, Mobile, or Enrolment No..." class="flex-1 p-3 border rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <select id="batch-filter" class="p-3 border rounded shadow-sm bg-white"><option value="All">All Batches</option></select>
+            <select id="state-filter" class="p-3 border rounded shadow-sm bg-white"><option value="All">All States</option></select>
+        </div>
+
+        <div id="directory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <script>
+        let students = [];
+
+        // Fetch the JSON data exported from Colab
+        fetch('senior_directory.json')
+            .then(response => response.json())
+            .then(data => {
+                students = data;
+                populateFilters();
+                renderGrid(students);
+            })
+            .catch(error => console.error('Error loading data:', error));
+
+        function populateFilters() {
+            const batches = [...new Set(students.map(s => s.batch).filter(Boolean))].sort();
+            const states = [...new Set(students.map(s => s.state).filter(Boolean))].sort();
+            
+            const batchSelect = document.getElementById('batch-filter');
+            batches.forEach(b => batchSelect.innerHTML += `<option value="${b}">${b}</option>`);
+            
+            const stateSelect = document.getElementById('state-filter');
+            states.forEach(s => stateSelect.innerHTML += `<option value="${s}">${s}</option>`);
+        }
+
+        function renderGrid(data) {
+            const grid = document.getElementById('directory-grid');
+            grid.innerHTML = data.map(student => `
+                <div class="bg-white p-4 rounded-lg shadow border flex gap-4 hover:shadow-md transition-shadow">
+                    <div class="w-1/3 flex-shrink-0">
+                        <img src="photos/${student.photo}" alt="Photo" class="w-full h-32 object-cover rounded border bg-gray-200" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiNlNWU3ZWIiLz48L3N2Zz4='">
+                    </div>
+                    <div class="w-2/3">
+                        <h3 class="font-bold text-lg text-blue-800">${student.name || 'Unknown'}</h3>
+                        <p class="text-xs text-gray-500 mb-2">Batch: ${student.batch || 'N/A'} | Card: #${student.card_no || 'N/A'}</p>
+                        <p class="text-sm">📞 ${student.mobile_no || 'N/A'}</p>
+                        <p class="text-sm">📍 ${student.state || 'N/A'}</p>
+                        <p class="text-xs mt-2 text-gray-600 truncate" title="${student.permanent_address || 'N/A'}">${student.permanent_address || 'N/A'}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterData() {
+            const query = document.getElementById('search').value.toLowerCase();
+            const batch = document.getElementById('batch-filter').value;
+            const state = document.getElementById('state-filter').value;
+
+            const filtered = students.filter(s => {
+                const searchStr = `${s.name || ''} ${s.mobile_no || ''} ${s.enrolment_no || ''}`.toLowerCase();
+                const matchesText = searchStr.includes(query);
+                const matchesBatch = batch === "All" || s.batch === batch;
+                const matchesState = state === "All" || s.state === state;
+                return matchesText && matchesBatch && matchesState;
+            });
+            renderGrid(filtered);
+        }
+
+        document.getElementById('search').addEventListener('input', filterData);
+        document.getElementById('batch-filter').addEventListener('change', filterData);
+        document.getElementById('state-filter').addEventListener('change', filterData);
+    </script>
+</body>
+</html>
